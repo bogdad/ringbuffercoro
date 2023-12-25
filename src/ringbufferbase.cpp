@@ -1,6 +1,6 @@
-#include "ringbuffer.hpp"
+#include "ringbufferbase.hpp"
 
-#include "ringbuffer-system.hpp"
+#include "ringbufferbase-system.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -54,6 +54,7 @@ void RingBufferBase::commit(std::size_t len) {
   filled_size_ -= len;
   filled_start_ += len;
   filled_start_ %= _size;
+  on_commit_();
 }
 
 void RingBufferBase::consume(std::size_t len) {

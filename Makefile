@@ -1,3 +1,3 @@
 buildall:
 	echo building
-	cd build && ninja && ctest
+	cd build && ninja && ctest --verbose

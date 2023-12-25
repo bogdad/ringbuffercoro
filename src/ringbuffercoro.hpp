@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ringbuffer.hpp"
+#include "ringbufferbase.hpp"
 #include <coroutine>
 #include <cstddef>
 #include <map>
@@ -36,20 +36,11 @@ struct RingBufferCoro : public RingBufferBase {
   AwaiterNotEmpty wait_not_empty(std::size_t guaranteed_filled_size);
 
   RingBufferCoro(std::size_t size, std::size_t low_watermark,
-                 std::size_t high_watermark)
-      : RingBufferBase(size, low_watermark, high_watermark) {}
+                 std::size_t high_watermark);
 
   std::multimap<std::size_t, AwaiterNotFull *> waiting_not_full_;
   std::multimap<std::size_t, AwaiterNotEmpty *> waiting_not_empty_;
 };
-
-
-
-
-
-
-
-
 
 template <typename ConstBuffer, typename MutableBuffer>
 struct RingBuffer : public RingBufferCoro {

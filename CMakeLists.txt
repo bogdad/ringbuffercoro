@@ -3,7 +3,7 @@ set(CXX_STANDARD 23)
 project(ringbuffercoro)
 enable_testing()
 
-add_library(ringbuffercoro src/ringbuffer.cpp src/ringbuffercoro.cpp src/ringbuffer-system.cpp)
+add_library(ringbuffercoro src/ringbufferbase.cpp src/ringbufferbase-system.cpp src/ringbuffercoro.cpp)
 target_include_directories(ringbuffercoro PRIVATE src)
 
 find_package(Catch2 REQUIRED)

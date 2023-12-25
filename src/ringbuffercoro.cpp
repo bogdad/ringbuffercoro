@@ -20,6 +20,7 @@ void RingBufferCoro::AwaiterNotFull::await_resume() {
 }
 
 void RingBufferCoro::AwaiterNotFull::await_suspend(std::coroutine_handle<> h) {
+  *coro_ = h;
   ring_buffer_.waiting_not_full_.insert(std::make_pair(min_size_, this));
 }
 
@@ -41,6 +42,22 @@ RingBufferCoro::AwaiterNotFull RingBufferCoro::wait_not_full(std::size_t min_siz
 
 RingBufferCoro::AwaiterNotEmpty RingBufferCoro::wait_not_empty(std::size_t min_size) {
   return AwaiterNotEmpty{min_size, *this};
+}
+
+RingBufferCoro::RingBufferCoro(std::size_t size, std::size_t low_watermark,
+                 std::size_t high_watermark): RingBufferBase(size, low_watermark, high_watermark) {
+  on_commit_ = [this] () {
+    auto &tmp = waiting_not_full_;
+    
+    while (tmp.empty()) {
+      auto cur_write_ready = ready_write_size();
+      auto it = tmp.begin();
+      if (it->first <= cur_write_ready) {
+        (*it->second->coro_)();
+        tmp.erase(it);
+      }
+    }
+  };
 }
 
 } // namespace am
