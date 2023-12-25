@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <functional>
 #include <memory>
 #include <span>
 #include <string_view>
@@ -133,6 +134,7 @@ protected:
   std::size_t non_filled_size_;
   std::size_t _low_watermark;
   std::size_t _high_watermark;
+  std::function<void()> on_commit_{};
 };
 
 template <typename ConstBuffer, typename MutableBuffer>
@@ -195,6 +197,7 @@ struct RingBuffer: public RingBufferBase {
       MutableBuffer(&_data.at(non_filled_start_), buf_size));
   }
 
+  RingBuffer(std::size_t size, std::size_t low_watermark, std::size_t high_watermark): RingBufferBase(size, low_watermark, high_watermark) {}
 };
 
 } // namespace am
