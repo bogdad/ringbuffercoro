@@ -1,0 +1,37 @@
+---
+AlignEscapedNewlines: Left
+AlignTrailingComments:
+    Kind: Always
+    OverEmptyLines: 0
+BasedOnStyle: LLVM
+BraceWrapping:
+    AfterFunction: true
+BreakBeforeBraces: Attach
+BreakBeforeInheritanceComma: true
+BreakConstructorInitializers: BeforeComma
+IndentPPDirectives: AfterHash
+PPIndentWidth: 2
+IndentRequiresClause: false
+IndentWidth: 2
+InsertNewlineAtEOF: true
+LineEnding: LF
+NamespaceIndentation: None
+QualifierAlignment: Left
+RemoveSemicolon: true
+RequiresClausePosition: WithFollowing
+RequiresExpressionIndentation: OuterScope
+SpaceAfterTemplateKeyword: true
+
+
+---
+Language: ObjC
+BinPackParameters: false
+BraceWrapping:
+    AfterObjCDeclaration: true
+ObjCBinPackProtocolList: Never
+ObjCBlockIndentWidth: 4
+ObjCBreakBeforeNestedBlockParam: true
+ObjCSpaceAfterProperty: true
+ObjCSpaceBeforeProtocolList: true
+
+...
