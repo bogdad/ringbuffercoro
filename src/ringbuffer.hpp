@@ -77,9 +77,11 @@ private:
   LinearMemInfo mapped_;
 };
 
+
+
 struct RingBufferBase {
   RingBufferBase(std::size_t size, std::size_t low_watermark,
-                 std::size_t high_watermark);
+             std::size_t high_watermark);
 
   void reset();
 
@@ -106,6 +108,8 @@ struct RingBufferBase {
   void memcpy_in(const void *data, size_t sz);
   void memcpy_out(void *data, size_t sz);
 
+  
+
   bool empty() const;
   std::size_t ready_size() const;
   std::size_t ready_write_size() const;
@@ -131,70 +135,6 @@ protected:
   std::size_t _low_watermark;
   std::size_t _high_watermark;
   std::function<void()> on_commit_{};
-};
-
-template <typename ConstBuffer, typename MutableBuffer>
-struct RingBuffer : public RingBufferBase {
-  using const_buffers_type = buffers_2<ConstBuffer>;
-  using mutable_buffers_type = buffers_2<MutableBuffer>;
-  // non filled sequence for writes
-
-  const_buffers_type data() const {
-    if (filled_size_ == 0)
-      return {};
-    auto left_to_the_right = _size - filled_start_;
-    if (filled_size_ > left_to_the_right) {
-      return {ConstBuffer(&_data.at(filled_start_), left_to_the_right),
-              ConstBuffer(_data.data(), filled_size_ - left_to_the_right)};
-    }
-    return const_buffers_type(
-        ConstBuffer(&_data.at(filled_start_), filled_size_));
-  }
-
-  const_buffers_type data(std::size_t max_size) const {
-    if (filled_size_ == 0)
-      return {};
-    auto buf_size = std::min(filled_size_, max_size);
-    auto left_to_the_right = _size - filled_start_;
-    if (buf_size > left_to_the_right) {
-      return {ConstBuffer(&_data.at(filled_start_), left_to_the_right),
-              ConstBuffer(_data.data(), buf_size - left_to_the_right)};
-    }
-    return const_buffers_type(ConstBuffer(&_data.at(filled_start_), buf_size));
-  }
-
-  mutable_buffers_type prepared() {
-    if (non_filled_size_ == 0) {
-      return {};
-    }
-    auto left_to_the_right = _size - non_filled_start_;
-    if (non_filled_size_ > left_to_the_right) {
-      // we have 2 parts
-      return {
-          MutableBuffer(&_data.at(non_filled_start_), left_to_the_right),
-          MutableBuffer(_data.data(), non_filled_size_ - left_to_the_right)};
-    }
-    return mutable_buffers_type(
-        MutableBuffer(&_data.at(non_filled_start_), non_filled_size_));
-  }
-
-  mutable_buffers_type prepared(std::size_t max_size) {
-    if (non_filled_size_ == 0) {
-      return {};
-    }
-    auto buf_size = std::min(non_filled_size_, max_size);
-    auto left_to_the_right = _size - non_filled_start_;
-    if (buf_size > left_to_the_right) {
-      return {MutableBuffer(&_data.at(non_filled_start_), left_to_the_right),
-              MutableBuffer(_data.data(), buf_size - left_to_the_right)};
-    }
-    return mutable_buffers_type(
-        MutableBuffer(&_data.at(non_filled_start_), buf_size));
-  }
-
-  RingBuffer(std::size_t size, std::size_t low_watermark,
-             std::size_t high_watermark)
-      : RingBufferBase(size, low_watermark, high_watermark) {}
 };
 
 } // namespace am
