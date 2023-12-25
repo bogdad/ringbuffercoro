@@ -32,7 +32,7 @@ std::vector<char> LinnearArray::to_vector() {
 }
 
 RingBufferBase::RingBufferBase(std::size_t size, std::size_t low_watermark,
-                       std::size_t high_watermark)
+                               std::size_t high_watermark)
     : _data(size)
     , _size(_data.size())
     , filled_start_(0)
@@ -40,8 +40,7 @@ RingBufferBase::RingBufferBase(std::size_t size, std::size_t low_watermark,
     , non_filled_start_(0)
     , non_filled_size_(_data.size())
     , _low_watermark(low_watermark)
-    , _high_watermark(high_watermark)
-    {}
+    , _high_watermark(high_watermark) {}
 
 void RingBufferBase::reset() {
   filled_start_ = 0;
@@ -95,7 +94,9 @@ bool RingBufferBase::empty() const { return filled_size_ == 0; }
 
 std::size_t RingBufferBase::ready_size() const { return filled_size_; }
 
-std::size_t RingBufferBase::ready_write_size() const { return non_filled_size_; }
+std::size_t RingBufferBase::ready_write_size() const {
+  return non_filled_size_;
+}
 
 bool RingBufferBase::below_high_watermark() const {
   return ready_size() < _high_watermark;
