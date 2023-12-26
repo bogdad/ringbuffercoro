@@ -3,7 +3,7 @@
 #include "ringbufferbase.hpp"
 #include <coroutine>
 #include <cstddef>
-#include <map>
+#include <queue>
 
 namespace am {
 
@@ -19,7 +19,7 @@ struct RingBufferCoro : public RingBufferBase {
 	    
 	    RingBufferCoro &ring_buffer_;
 	    std::size_t min_size_;
-	    std::coroutine_handle<> *coro_{};
+	    std::coroutine_handle<> coro_{};
 	};
 	struct AwaiterNotEmpty {
 	    AwaiterNotEmpty(std::size_t min_size, RingBufferCoro &ring_buffer);
@@ -29,7 +29,7 @@ struct RingBufferCoro : public RingBufferBase {
 		
 		RingBufferCoro &ring_buffer_;
 	    std::size_t min_size_;
-	    std::coroutine_handle<> *coro_{};
+	    std::coroutine_handle<> coro_{};
 	};
 
   AwaiterNotFull wait_not_full(std::size_t guaranteed_free_size);
@@ -38,8 +38,8 @@ struct RingBufferCoro : public RingBufferBase {
   RingBufferCoro(std::size_t size, std::size_t low_watermark,
                  std::size_t high_watermark);
 
-  std::multimap<std::size_t, AwaiterNotFull *> waiting_not_full_;
-  std::multimap<std::size_t, AwaiterNotEmpty *> waiting_not_empty_;
+  std::queue<std::pair<std::size_t, AwaiterNotFull *>> waiting_not_full_;
+  std::queue<std::pair<std::size_t, AwaiterNotEmpty *>> waiting_not_empty_;
 };
 
 template <typename ConstBuffer, typename MutableBuffer>

@@ -1,6 +1,6 @@
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <coroutine>
-#include <future>
 #include <iostream>
 #include <numeric>
 #include <vector>
@@ -16,32 +16,30 @@ struct task: std::coroutine_handle<promise> {
 };
 
 struct promise {
-    int v_;
     task get_return_object() { return {task::from_promise(*this)}; }
-    std::suspend_never initial_suspend() { return {}; }
+    std::suspend_always initial_suspend() { return {}; }
     std::suspend_never final_suspend() noexcept { return {}; }
     void return_void() {}
-    void unhandled_exception() {} // C++20 concept
-    std::suspend_always yield_value(int i) {
-      v_ = i; // caching the result in promise
-      return {};
-    }
+    void unhandled_exception() {}
 };
 
 using RingBufferSpan = RingBuffer<std::span<char>, std::span<char>>;
 
 task producer(RingBufferSpan &ring) {
-  std::vector<int> data(10);
-  std::iota(data.begin(), data.end(), 0);
-  int i = 0;
+  std::vector<int> data(10, 0);
   while (true) {
-    auto want_write_size = data.size() * sizeof(int);
+    auto want_write_size = sizeof(int);
     if (ring.ready_write_size() >= want_write_size) {
-      ring.memcpy_in(data.data(), want_write_size);
-      std::cout << "producer: we wrote\n";
-      // co_yield i;
+      auto &i = data[0];
+      i++;
+      ring.memcpy_in(data.data(), want_write_size);      
+      if (i % 100 == 0) {
+        std::cout << "producer: produced " << i << "\n";
+      }
+      if (i > 100000) {
+        break;
+      }
     } else {
-      std::cout << "producer: we filled the buffer\n";
       co_await ring.wait_not_full(want_write_size);
     }
   }
@@ -49,11 +47,16 @@ task producer(RingBufferSpan &ring) {
 
 task consumer(RingBufferSpan &ring) {
   while (true) {
-    if (ring.ready_size() > sizeof(int)) {
+    if (ring.ready_size() >= sizeof(int)) {
       int i = ring.peek_int();
       ring.commit(4);
-      std::cout << "consumer: we got " << i <<"\n";
-      // co_yield i;
+      if (i % 100 == 0) {
+        std::cout << "consumer: consumed " << i << "\n";
+      }
+      if (i > 100000) {
+        std::cout << "consumer: consumed everything\n";
+        break;
+      }
     } else {
       co_await ring.wait_not_empty(4);
     }
@@ -69,6 +72,7 @@ TEST_CASE("commit wakes up waiters", "[RingBufferCoro]") {
   producer_coro.resume();
   consumer_coro.resume();
 
+  // this tests test stopping
 }
 
 } // namespace am

@@ -62,6 +62,7 @@ void RingBufferBase::consume(std::size_t len) {
   non_filled_size_ -= len;
   non_filled_start_ += len;
   non_filled_start_ %= _size;
+  on_consume_();
 }
 
 void RingBufferBase::memcpy_in(const void *data, size_t sz) {

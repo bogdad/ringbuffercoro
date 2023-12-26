@@ -108,8 +108,6 @@ struct RingBufferBase {
   void memcpy_in(const void *data, size_t sz);
   void memcpy_out(void *data, size_t sz);
 
-  
-
   bool empty() const;
   std::size_t ready_size() const;
   std::size_t ready_write_size() const;
@@ -135,6 +133,7 @@ protected:
   std::size_t _low_watermark;
   std::size_t _high_watermark;
   std::function<void()> on_commit_{};
+  std::function<void()> on_consume_{};
 };
 
 } // namespace am
