@@ -16,11 +16,11 @@ struct task: std::coroutine_handle<promise> {
 };
 
 struct promise {
-    task get_return_object() { return {task::from_promise(*this)}; }
-    std::suspend_always initial_suspend() { return {}; }
-    std::suspend_never final_suspend() noexcept { return {}; }
-    void return_void() {}
-    void unhandled_exception() {}
+  task get_return_object() { return {task::from_promise(*this)}; }
+  std::suspend_always initial_suspend() { return {}; }
+  std::suspend_never final_suspend() noexcept { return {}; }
+  void return_void() {}
+  void unhandled_exception() {}
 };
 
 using RingBufferSpan = RingBuffer<std::span<char>, std::span<char>>;
@@ -32,7 +32,7 @@ task producer(RingBufferSpan &ring) {
     if (ring.ready_write_size() >= want_write_size) {
       auto &i = data[0];
       i++;
-      ring.memcpy_in(data.data(), want_write_size);      
+      ring.memcpy_in(data.data(), want_write_size);
       if (i % 100 == 0) {
         std::cout << "producer: produced " << i << "\n";
       }

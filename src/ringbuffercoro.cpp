@@ -48,9 +48,9 @@ RingBufferCoro::AwaiterNotEmpty RingBufferCoro::wait_not_empty(std::size_t min_s
 
 RingBufferCoro::RingBufferCoro(std::size_t size, std::size_t low_watermark,
                  std::size_t high_watermark): RingBufferBase(size, low_watermark, high_watermark) {
-  on_commit_ = [this] () {
+  on_commit_ = [this]() {
     auto &tmp = waiting_not_full_;
-    
+
     while (!tmp.empty()) {
       auto cur_write_ready = ready_write_size();
       auto it = tmp.front();
@@ -63,7 +63,7 @@ RingBufferCoro::RingBufferCoro(std::size_t size, std::size_t low_watermark,
       }
     }
   };
-  on_consume_ = [this] () {
+  on_consume_ = [this]() {
     auto &tmp = waiting_not_empty_;
     while (!tmp.empty()) {
       auto cur_ready = ready_size();

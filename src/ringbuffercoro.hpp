@@ -19,8 +19,8 @@ struct RingBufferCoro : public RingBufferBase {
 	    
 	    RingBufferCoro &ring_buffer_;
 	    std::size_t min_size_;
-	    std::coroutine_handle<> coro_{};
-	};
+            std::coroutine_handle<> coro_{};
+        };
 	struct AwaiterNotEmpty {
 	    AwaiterNotEmpty(std::size_t min_size, RingBufferCoro &ring_buffer);
 	    bool await_ready();
@@ -29,8 +29,8 @@ struct RingBufferCoro : public RingBufferBase {
 		
 		RingBufferCoro &ring_buffer_;
 	    std::size_t min_size_;
-	    std::coroutine_handle<> coro_{};
-	};
+            std::coroutine_handle<> coro_{};
+        };
 
   AwaiterNotFull wait_not_full(std::size_t guaranteed_free_size);
   AwaiterNotEmpty wait_not_empty(std::size_t guaranteed_filled_size);
