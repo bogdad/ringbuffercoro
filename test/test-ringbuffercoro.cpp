@@ -1,8 +1,7 @@
-#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <coroutine>
+#include <cstddef>
 #include <iostream>
-#include <numeric>
 #include <vector>
 
 #include "ringbuffercoro.hpp"
@@ -25,7 +24,7 @@ struct promise {
 
 using RingBufferSpan = RingBuffer<std::span<char>, std::span<char>>;
 
-task producer(RingBufferSpan &ring) {
+task producer(RingBufferSpan &ring, const std::size_t n_iter) {
   std::vector<int> data(10, 0);
   while (true) {
     auto want_write_size = sizeof(int);
@@ -36,7 +35,7 @@ task producer(RingBufferSpan &ring) {
       if (i % 100 == 0) {
         std::cout << "producer: produced " << i << "\n";
       }
-      if (i > 100000) {
+      if (i > n_iter) {
         break;
       }
     } else {
@@ -45,7 +44,7 @@ task producer(RingBufferSpan &ring) {
   }
 }
 
-task consumer(RingBufferSpan &ring) {
+task consumer(RingBufferSpan &ring, const std::size_t n_iter) {
   while (true) {
     if (ring.ready_size() >= sizeof(int)) {
       int i = ring.peek_int();
@@ -53,7 +52,7 @@ task consumer(RingBufferSpan &ring) {
       if (i % 100 == 0) {
         std::cout << "consumer: consumed " << i << "\n";
       }
-      if (i > 100000) {
+      if (i > n_iter) {
         std::cout << "consumer: consumed everything\n";
         break;
       }
@@ -63,16 +62,40 @@ task consumer(RingBufferSpan &ring) {
   }
 }
 
-TEST_CASE("commit wakes up waiters", "[RingBufferCoro]") {
-  RingBufferSpan ring(64535, 20000, 40000);
+TEST_CASE("commit and consume wake up waiters", "[RingBufferCoro]") {
+  std::size_t size_hint {65535};
+  RingBufferSpan ring(size_hint, 20000, 40000);
 
-  auto producer_coro = producer(ring);
-  auto consumer_coro = consumer(ring);
+  std::size_t larger_than_page_size = ring.ready_write_size() + 1;
+
+  // size of the ring buffer in reality might be larger than size_hint 
+  // if page size is greater
+  auto producer_coro = producer(ring, larger_than_page_size);
+  auto consumer_coro = consumer(ring, larger_than_page_size);
 
   producer_coro.resume();
   consumer_coro.resume();
 
-  // this tests test stopping
+  // this test tests stopping
 }
+
+TEST_CASE("commit does not crash when waiting coroutine is destroyed", "[RingBufferCoro]") {
+  std::size_t size_hint {65535};
+  RingBufferSpan ring(size_hint, 20000, 40000);
+
+  std::size_t larger_than_page_size = ring.ready_write_size() + 1;
+
+  auto consumer_coro = consumer(ring, 1);
+  {
+    auto producer_coro = producer(ring, larger_than_page_size);
+    producer_coro.resume();
+    // producer is waiting and is destroyed
+    producer_coro.destroy();
+  }
+  consumer_coro.resume(); // consumer commits
+
+  REQUIRE(ring.woken_up()==1);
+}
+
 
 } // namespace am

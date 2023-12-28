@@ -58,6 +58,7 @@ RingBufferCoro::RingBufferCoro(std::size_t size, std::size_t low_watermark,
         std::cout << "ring: waking up producer\n";
         it.second->coro_();
         tmp.pop();
+        woken_up_++;
       } else {
         break;
       }
@@ -72,11 +73,16 @@ RingBufferCoro::RingBufferCoro(std::size_t size, std::size_t low_watermark,
         std::cout << "ring: waking up consumer\n";
         it.second->coro_();
         tmp.pop();
+        woken_up_++;
       } else {
         break;
       }
     }
   };
+}
+
+std::size_t RingBufferCoro::woken_up() const noexcept {
+  return woken_up_;
 }
 
 } // namespace am

@@ -20,26 +20,29 @@ struct RingBufferCoro : public RingBufferBase {
 	    RingBufferCoro &ring_buffer_;
 	    std::size_t min_size_;
             std::coroutine_handle<> coro_{};
-        };
+  };
 	struct AwaiterNotEmpty {
 	    AwaiterNotEmpty(std::size_t min_size, RingBufferCoro &ring_buffer);
 	    bool await_ready();
 	    void await_suspend(std::coroutine_handle<> h);
 	    void await_resume();
 		
-		RingBufferCoro &ring_buffer_;
-	    std::size_t min_size_;
+	RingBufferCoro &ring_buffer_;
+	   std::size_t min_size_;
             std::coroutine_handle<> coro_{};
-        };
+  };
 
   AwaiterNotFull wait_not_full(std::size_t guaranteed_free_size);
   AwaiterNotEmpty wait_not_empty(std::size_t guaranteed_filled_size);
+
+  std::size_t woken_up() const noexcept;
 
   RingBufferCoro(std::size_t size, std::size_t low_watermark,
                  std::size_t high_watermark);
 
   std::queue<std::pair<std::size_t, AwaiterNotFull *>> waiting_not_full_;
   std::queue<std::pair<std::size_t, AwaiterNotEmpty *>> waiting_not_empty_;
+  int woken_up_{};
 };
 
 template <typename ConstBuffer, typename MutableBuffer>
