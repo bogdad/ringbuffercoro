@@ -79,9 +79,9 @@ RingBufferCoro::RingBufferCoro(std::size_t size, std::size_t low_watermark,
     auto &tmp = waiting_not_empty_;
 
     while (!tmp.empty()) {
-      auto cur_write_ready = ready_size();
+      auto cur_ready = ready_size();
       if (auto awaiter = tmp.front().lock()) {
-        if (awaiter->min_size_ <= cur_write_ready) {
+        if (awaiter->min_size_ <= cur_ready) {
           std::cout << "ring: waking up producer\n";
           awaiter->coro_();
           tmp.pop();
