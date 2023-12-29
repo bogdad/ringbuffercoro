@@ -2,15 +2,24 @@
 #include <coroutine>
 #include <cstddef>
 #include <iostream>
+#include <memory>
 #include <utility>
 
 namespace am {
 
-RingBufferCoro::AwaiterNotFull::AwaiterNotFull(std::size_t min_size, am::RingBufferCoro &ring_buffer):
-min_size_(min_size), ring_buffer_(ring_buffer) {}
+RingBufferCoro::AwaiterNotFull::AwaiterNotFull(std::size_t min_size,
+                                               am::RingBufferCoro &ring_buffer,
+                                               std::weak_ptr<void> &&lifetime)
+    : min_size_(min_size)
+    , ring_buffer_(ring_buffer)
+    , lifetime_(lifetime) {}
 
-RingBufferCoro::AwaiterNotEmpty::AwaiterNotEmpty(std::size_t min_size, am::RingBufferCoro &ring_buffer):
-min_size_(min_size), ring_buffer_(ring_buffer) {}
+RingBufferCoro::AwaiterNotEmpty::AwaiterNotEmpty(
+    std::size_t min_size, am::RingBufferCoro &ring_buffer,
+    std::weak_ptr<void> &&lifetime)
+    : min_size_(min_size)
+    , ring_buffer_(ring_buffer)
+    , lifetime_(lifetime) {}
 
 bool RingBufferCoro::AwaiterNotFull::await_ready() {
   return ring_buffer_.ready_write_size() >= min_size_;
@@ -23,6 +32,10 @@ void RingBufferCoro::AwaiterNotFull::await_resume() {
 void RingBufferCoro::AwaiterNotFull::await_suspend(std::coroutine_handle<> h) {
   coro_ = h;
   ring_buffer_.waiting_not_full_.emplace(min_size_, this);
+}
+
+bool RingBufferCoro::AwaiterNotFull::is_alive() const noexcept {
+  return !lifetime_.expired();
 }
 
 bool RingBufferCoro::AwaiterNotEmpty::await_ready() {
@@ -38,12 +51,20 @@ void RingBufferCoro::AwaiterNotEmpty::await_suspend(std::coroutine_handle<> h) {
   ring_buffer_.waiting_not_empty_.emplace(min_size_, this);
 }
 
-RingBufferCoro::AwaiterNotFull RingBufferCoro::wait_not_full(std::size_t min_size) {
-  return AwaiterNotFull{min_size, *this};
+bool RingBufferCoro::AwaiterNotEmpty::is_alive() const noexcept {
+  return !lifetime_.expired();
 }
 
-RingBufferCoro::AwaiterNotEmpty RingBufferCoro::wait_not_empty(std::size_t min_size) {
-  return AwaiterNotEmpty{min_size, *this};
+RingBufferCoro::AwaiterNotFull
+RingBufferCoro::wait_not_full(std::size_t min_size,
+                              std::weak_ptr<void> &&lifetime) {
+  return AwaiterNotFull{min_size, *this, std::move(lifetime)};
+}
+
+RingBufferCoro::AwaiterNotEmpty
+RingBufferCoro::wait_not_empty(std::size_t min_size,
+                               std::weak_ptr<void> &&lifetime) {
+  return AwaiterNotEmpty{min_size, *this, std::move(lifetime)};
 }
 
 RingBufferCoro::RingBufferCoro(std::size_t size, std::size_t low_watermark,
@@ -54,6 +75,11 @@ RingBufferCoro::RingBufferCoro(std::size_t size, std::size_t low_watermark,
     while (!tmp.empty()) {
       auto cur_write_ready = ready_write_size();
       auto it = tmp.front();
+      if (!it.second->is_alive()) {
+        tmp.pop();
+        woken_up_skipped_++;
+        continue;
+      }
       if (it.first <= cur_write_ready) {
         std::cout << "ring: waking up producer\n";
         it.second->coro_();
@@ -69,6 +95,11 @@ RingBufferCoro::RingBufferCoro(std::size_t size, std::size_t low_watermark,
     while (!tmp.empty()) {
       auto cur_ready = ready_size();
       auto it = tmp.front();
+      if (!it.second->is_alive()) {
+        tmp.pop();
+        woken_up_skipped_++;
+        continue;
+      }
       if (it.first <= cur_ready) {
         std::cout << "ring: waking up consumer\n";
         it.second->coro_();
@@ -83,6 +114,10 @@ RingBufferCoro::RingBufferCoro(std::size_t size, std::size_t low_watermark,
 
 std::size_t RingBufferCoro::woken_up() const noexcept {
   return woken_up_;
+}
+
+std::size_t RingBufferCoro::woken_up_skipped() const noexcept {
+  return woken_up_skipped_;
 }
 
 } // namespace am

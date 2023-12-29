@@ -2,6 +2,7 @@
 #include <coroutine>
 #include <cstddef>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include "ringbuffercoro.hpp"
@@ -10,12 +11,24 @@ namespace am {
 
 struct promise;
 
-struct task: std::coroutine_handle<promise> {
+struct DestructionSignaller {
+  DestructionSignaller(std::string &&name)
+      : name_(std::move(name)) {}
+  ~DestructionSignaller() { std::cout << "destrying " << name_ << "\n"; }
+  std::string name_;
+};
+
+struct Task : std::coroutine_handle<promise> {
   using promise_type = ::am::promise;
+  Task(std::coroutine_handle<promise_type> h)
+      : coroutine_handle<promise_type>(h) {}
+  Task(const Task &) = delete;
+  Task(Task &&) = delete;
+  DestructionSignaller signaller_{"task"};
 };
 
 struct promise {
-  task get_return_object() { return {task::from_promise(*this)}; }
+  Task get_return_object() { return {Task::from_promise(*this)}; }
   std::suspend_always initial_suspend() { return {}; }
   std::suspend_never final_suspend() noexcept { return {}; }
   void return_void() {}
@@ -24,7 +37,7 @@ struct promise {
 
 using RingBufferSpan = RingBuffer<std::span<char>, std::span<char>>;
 
-task producer(RingBufferSpan &ring, const std::size_t n_iter) {
+Task producer(RingBufferSpan &ring, const std::size_t n_iter) {
   std::vector<int> data(10, 0);
   while (true) {
     auto want_write_size = sizeof(int);
@@ -39,12 +52,13 @@ task producer(RingBufferSpan &ring, const std::size_t n_iter) {
         break;
       }
     } else {
-      co_await ring.wait_not_full(want_write_size);
+      auto lifetime = std::make_shared<DestructionSignaller>("producer lifetime");
+      co_await ring.wait_not_full(want_write_size, lifetime);
     }
   }
 }
 
-task consumer(RingBufferSpan &ring, const std::size_t n_iter) {
+Task consumer(RingBufferSpan &ring, const std::size_t n_iter) {
   while (true) {
     if (ring.ready_size() >= sizeof(int)) {
       int i = ring.peek_int();
@@ -57,7 +71,8 @@ task consumer(RingBufferSpan &ring, const std::size_t n_iter) {
         break;
       }
     } else {
-      co_await ring.wait_not_empty(4);
+      auto lifetime = std::make_shared<DestructionSignaller>("consumer lifetime");
+      co_await ring.wait_not_empty(4, lifetime);
     }
   }
 }
@@ -94,7 +109,8 @@ TEST_CASE("commit does not crash when waiting coroutine is destroyed", "[RingBuf
   }
   consumer_coro.resume(); // consumer commits
 
-  REQUIRE(ring.woken_up()==1);
+  REQUIRE(ring.woken_up() == 0);
+  REQUIRE(ring.woken_up_skipped() == 1);
 }
 
 
