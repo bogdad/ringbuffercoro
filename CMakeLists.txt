@@ -8,6 +8,10 @@ if (RBC_ASAN)
 	set(CMAKE_CXX_FLAGS -fsanitize=address)
 endif()
 
+if (WIN32)
+	SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+endif()
+
 enable_testing()
 
 add_library(ringbuffercoro src/ringbufferbase.cpp src/ringbufferbase-system.cpp src/ringbuffercoro.cpp)
