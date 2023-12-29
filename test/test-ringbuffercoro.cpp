@@ -52,8 +52,8 @@ Task producer(RingBufferSpan &ring, const std::size_t n_iter) {
         break;
       }
     } else {
-      auto lifetime = std::make_shared<DestructionSignaller>("producer lifetime");
-      co_await ring.wait_not_full(want_write_size, lifetime);
+      auto awaiter = ring.wait_not_full(want_write_size);
+      co_await *awaiter;
     }
   }
 }
@@ -71,8 +71,8 @@ Task consumer(RingBufferSpan &ring, const std::size_t n_iter) {
         break;
       }
     } else {
-      auto lifetime = std::make_shared<DestructionSignaller>("consumer lifetime");
-      co_await ring.wait_not_empty(4, lifetime);
+      auto awaiter = ring.wait_not_empty(4);
+      co_await *awaiter;
     }
   }
 }

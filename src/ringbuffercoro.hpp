@@ -10,9 +10,8 @@ namespace am {
 
 struct RingBufferCoro : public RingBufferBase {
 
-	struct AwaiterNotFull {
-          AwaiterNotFull(std::size_t min_size, RingBufferCoro &ring_buffer,
-                         std::weak_ptr<void> &&lifetime);
+	struct AwaiterNotFull: std::enable_shared_from_this<AwaiterNotFull> {
+          AwaiterNotFull(std::size_t min_size, RingBufferCoro &ring_buffer);
           bool await_ready();
           void await_suspend(std::coroutine_handle<> h);
           void await_resume();
@@ -22,11 +21,9 @@ struct RingBufferCoro : public RingBufferBase {
           RingBufferCoro &ring_buffer_;
           std::size_t min_size_;
           std::coroutine_handle<> coro_{};
-          std::weak_ptr<void> lifetime_;
   };
-	struct AwaiterNotEmpty {
-          AwaiterNotEmpty(std::size_t min_size, RingBufferCoro &ring_buffer,
-                          std::weak_ptr<void> &&lifetime);
+	struct AwaiterNotEmpty: std::enable_shared_from_this<AwaiterNotEmpty> {
+          AwaiterNotEmpty(std::size_t min_size, RingBufferCoro &ring_buffer);
           bool await_ready();
           void await_suspend(std::coroutine_handle<> h);
           void await_resume();
@@ -36,13 +33,10 @@ struct RingBufferCoro : public RingBufferBase {
           RingBufferCoro &ring_buffer_;
           std::size_t min_size_;
           std::coroutine_handle<> coro_{};
-          std::weak_ptr<void> lifetime_;
   };
 
-  AwaiterNotFull wait_not_full(std::size_t guaranteed_free_size,
-                               std::weak_ptr<void> &&lifetime);
-  AwaiterNotEmpty wait_not_empty(std::size_t guaranteed_filled_size,
-                                 std::weak_ptr<void> &&lifetime);
+  std::shared_ptr<AwaiterNotFull> wait_not_full(std::size_t guaranteed_free_size);
+  std::shared_ptr<AwaiterNotEmpty> wait_not_empty(std::size_t guaranteed_filled_size);
 
   std::size_t woken_up() const noexcept;
   std::size_t woken_up_skipped() const noexcept;
@@ -50,8 +44,8 @@ struct RingBufferCoro : public RingBufferBase {
   RingBufferCoro(std::size_t size, std::size_t low_watermark,
                  std::size_t high_watermark);
 
-  std::queue<std::pair<std::size_t, AwaiterNotFull *>> waiting_not_full_;
-  std::queue<std::pair<std::size_t, AwaiterNotEmpty *>> waiting_not_empty_;
+  std::queue<std::weak_ptr<AwaiterNotFull>> waiting_not_full_;
+  std::queue<std::weak_ptr<AwaiterNotEmpty>> waiting_not_empty_;
   int woken_up_{};
   int woken_up_skipped_{};
 };
