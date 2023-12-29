@@ -4,7 +4,7 @@ project(ringbuffercoro)
 
 option(RBC_ASAN "run with asan" OFF)
 
-if (RBC_ASAN)
+if (RBC_ASAN AND NOT WIN32)
 	set(CMAKE_CXX_FLAGS -fsanitize=address)
 endif()
 
