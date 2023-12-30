@@ -7,7 +7,9 @@ compiler.runtime=dynamic
 compiler.version=193
 os=Windows
 
-[conf]
-tools.build:cxxflags=["-fsanitize=address"]
-
-tools.info.package_id:confs=["tools.build:cxxflags", "tools.build:cflags", "tools.build:exelinkflags", "tools.build:sharedlinkflags"]
+# commented because a github actions bug 
+# with running asan https://github.com/actions/runner-images/issues/8891
+#[conf]
+#tools.build:cxxflags=["-fsanitize=address"]
+#
+#tools.info.package_id:confs=["tools.build:cxxflags", "tools.build:cflags", "tools.build:exelinkflags", #"tools.build:sharedlinkflags"]

@@ -4,7 +4,9 @@ project(ringbuffercoro)
 
 option(RBC_ASAN "run with asan" OFF)
 
-if (RBC_ASAN)
+if (RBC_ASAN AND NOT WIN32)
+	# github actions bug about now working asan
+	# https://github.com/actions/runner-images/issues/8891
 	set(CMAKE_CXX_FLAGS -fsanitize=address)
 endif()
 
