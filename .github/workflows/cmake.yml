@@ -34,6 +34,16 @@ jobs:
       run: sudo xcode-select -s /Applications/Xcode_15.1.app/Contents/Developer
       if: ${{ matrix.os == 'macos-13' }}
 
+    - name: Setup MSVC dev command prompt
+      uses: TheMrMilchmann/setup-msvc-dev@v3
+      with:
+        arch: x64
+      if: ${{ matrix.os == 'windows-latest' }}
+
+    - name: List installed MSVC toolchains
+      run: Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC" -Name
+      if: ${{ matrix.os == 'windows-latest' }}
+
     - name: Install dependencies
       run: conan install . --build=missing -s build_type=${{env.BUILD_TYPE}} --output-folder=${{github.workspace}}/build --profile:all ./.github/workflows/conan-${{matrix.os}}-profile
 
